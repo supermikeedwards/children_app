@@ -13,8 +13,8 @@ const schema = a
         nickname: a.string(),
         userType: a.enum(['CHILD', 'ADULT']),
         family: a.belongsTo('Family', 'user_id'),
-        responsibleFor: a.hasMany('User', 'resp_for_id'),
-        responsibleBy: a.hasMany('User', 'resp_for_id'),
+        responsibleFor: a.hasMany('ResponsibleFor', 'resp_for_id'),
+        responsibleBy: a.hasMany('ResponsibleFor', 'resp_for_id'),
       })
       .authorization((allow) => [
         allow.ownerDefinedIn("id"),
