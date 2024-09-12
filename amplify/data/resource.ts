@@ -1,53 +1,106 @@
-import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { postConfirmation } from "../auth/post-confirmation/resource";
 
-/*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any unauthenticated user can "create", "read", "update", 
-and "delete" any "Todo" records.
-=========================================================================*/
-const schema = a.schema({
-  Todo: a
-    .model({
-      content: a.string(),
-    })
-    .authorization((allow) => [allow.guest()]),
-});
+const schema = a
+  .schema({
+    User: a
+      .model({
+        user_id: a.id(),
+        email: a.string().required(),
+        password: a.string().required(),
+        name: a.string().required(),
+        surname: a.string().required(),
+        nickname: a.string(),
+        userType: a.enum(['CHILD', 'ADULT']),
+        family: a.belongsTo('Family', 'user_id'),
+        responsibleFor: a.hasMany('User', 'resp_for_id'),
+        responsibleBy: a.hasMany('User', 'resp_for_id'),
+      })
+      .authorization((allow) => [
+        allow.ownerDefinedIn("id"),
+      ]),
+
+    Family: a
+      .model({
+        family_id: a.id(),
+        name: a.string().required(),
+        members: a.hasMany('User', 'user_id'),
+        rewardsPunishmentsGifts: a.hasMany('RewardPunishmentGift', 'reward_id'),
+      })
+      .authorization((allow) => [
+        allow.owner(),
+        allow.publicApiKey(),
+      ]),
+
+    ResponsibleFor: a
+      .model({
+        resp_for_id: a.id(),
+        adult: a.belongsTo('User', 'user_id'),
+        child: a.belongsTo('User', 'user_id'),
+      })
+      .authorization((allow) => [
+        allow.owner(),
+      ]),
+
+    Rule: a
+      .model({
+        id: a.id(),
+        rule: a.string().required(),
+        order: a.integer().required(),
+        child: a.belongsTo('User', 'user_id'),
+      })
+      .authorization((allow) => [
+        allow.owner(),
+      ]),
+
+    Timetable: a
+      .model({
+        id: a.id(),
+        timeSlot: a.string().required(),
+        order: a.integer().required(),
+        activity: a.string().required(),
+        child: a.belongsTo('User', 'user_id'),
+      })
+      .authorization((allow) => [
+        allow.owner(),
+      ]),
+
+    RewardPunishmentGift: a
+      .model({
+        reward_id: a.id(),
+        category: a.enum(['PUNISHMENT', 'REWARD', 'GIFT']),
+        order: a.integer().required(),
+        description: a.string().required(),
+        points: a.integer().required(),
+        family: a.belongsTo('Family', 'family_id'),
+      })
+      .authorization((allow) => [
+        allow.owner(),
+      ]),
+
+    PointLog: a
+      .model({
+        id: a.id(),
+        date: a.date().required(),
+        time: a.time().required(),
+        child: a.belongsTo('User', 'user_id'),
+        rewardPunishmentGift: a.belongsTo('RewardPunishmentGift', 'reward_id'),
+        points: a.integer().required(),
+      })
+      .authorization((allow) => [
+        allow.owner(),
+      ]),
+  })
+  .authorization((allow) => [allow.resource(postConfirmation)]);
 
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'iam',
+    defaultAuthorizationMode: "apiKey",
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
   },
 });
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
