@@ -12,9 +12,10 @@ const schema = a
         surname: a.string().required(),
         nickname: a.string(),
         userType: a.enum(['CHILD', 'ADULT']),
+        rules: a.hasMany('Rule', 'rule_id'),
+        timetables: a.hasMany('Timetable', 'time_id'),
+        pointlog: a.hasMany('PointLog','log_id'),
         family: a.belongsTo('Family', 'user_id'),
-        responsibleFor: a.hasMany('ResponsibleFor', 'resp_for_id'),
-        responsibleBy: a.hasMany('ResponsibleFor', 'resp_for_id'),
       })
       .authorization((allow) => [
         allow.ownerDefinedIn("id"),
@@ -32,22 +33,12 @@ const schema = a
         allow.publicApiKey(),
       ]),
 
-    ResponsibleFor: a
-      .model({
-        resp_for_id: a.id(),
-        adult: a.belongsTo('User', 'user_id'),
-        child: a.belongsTo('User', 'user_id'),
-      })
-      .authorization((allow) => [
-        allow.owner(),
-      ]),
-
     Rule: a
       .model({
-        id: a.id(),
+        rule_id: a.id(),
         rule: a.string().required(),
         order: a.integer().required(),
-        child: a.belongsTo('User', 'user_id'),
+        User: a.belongsTo('User', 'rule_id'),
       })
       .authorization((allow) => [
         allow.owner(),
@@ -55,37 +46,49 @@ const schema = a
 
     Timetable: a
       .model({
-        id: a.id(),
+        time_id: a.id(),
         timeSlot: a.string().required(),
         order: a.integer().required(),
         activity: a.string().required(),
-        child: a.belongsTo('User', 'user_id'),
+        User: a.belongsTo('User', 'time_id'),
       })
       .authorization((allow) => [
         allow.owner(),
       ]),
 
-    RewardPunishmentGift: a
+      RewardPunishmentGift: a
       .model({
         reward_id: a.id(),
         category: a.enum(['PUNISHMENT', 'REWARD', 'GIFT']),
         order: a.integer().required(),
         description: a.string().required(),
         points: a.integer().required(),
-        family: a.belongsTo('Family', 'family_id'),
+        family: a.belongsTo('Family', 'reward_id'),
+        pointLogs: a.hasMany('PointLogRewardPunishmentGift', 'join_log_id'),
       })
       .authorization((allow) => [
         allow.owner(),
       ]),
 
-    PointLog: a
+
+      PointLog: a
       .model({
-        id: a.id(),
+        log_id: a.id(),
         date: a.date().required(),
         time: a.time().required(),
-        child: a.belongsTo('User', 'user_id'),
-        rewardPunishmentGift: a.belongsTo('RewardPunishmentGift', 'reward_id'),
+        user: a.belongsTo('User', 'log_id'),
+        pointLogs: a.hasMany('PointLogRewardPunishmentGift', 'join_log_id'),
         points: a.integer().required(),
+      })
+      .authorization((allow) => [
+        allow.owner(),
+      ]),
+
+      PointLogRewardPunishmentGift: a
+      .model({
+        join_log_id: a.id(),
+        pointLog: a.belongsTo('PointLog', 'join_log_id'),
+        rewardPunishmentGift: a.belongsTo('RewardPunishmentGift', 'join_log_id'),
       })
       .authorization((allow) => [
         allow.owner(),
